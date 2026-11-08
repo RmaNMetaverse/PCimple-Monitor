@@ -1,4 +1,5 @@
 # PCimple Monitor
+https://github.com/user-attachments/assets/d9e2908c-ff3e-44d0-bc70-9658aeb5eb1c
 
 PCimple Monitor shows session average and peak temperatures for CPU packages, GPUs, and physical drives. It also shows drive health and battery capacity retained. Close the dashboard to keep sampling from the notification area, or open the compact desktop widget from the dashboard or tray.
 
@@ -20,23 +21,6 @@ Sensor coverage depends on firmware, drivers, and storage controllers. On x86 an
 
 On x64, Intel graphics can use Intel driver telemetry. When the driver omits it, the sensor service can read the processor's separate graphics temperature on supported Raptor Lake mobile systems with PawnIO.
 
-## Build and test
-
-Use the .NET 10 SDK, PowerShell, and Inno Setup 6.7 or 7.1. Run these commands from the repository root.
-
-```powershell
-dotnet run --project tests/Monitoring.Tests
-.\build.ps1 -InnoCompiler 'C:\Path\To\ISCC.exe'
-```
-
-Use `-PublishOnly` to create the self-contained application and service folders without installers. Use `-Offline` after all NuGet and runtime packages have been cached. Installers and their SHA-256 checksums are written to `artifacts/installers`. For a public release, pass `-SignToolCommand` with a publisher Authenticode signing command and the Inno Setup `$f` file placeholder.
-
-For an offline x64 build, cache the publisher's PawnIO setup at `artifacts/tools/PawnIO_setup-2.2.0.exe` or pass its location with `-PawnIOSetupPath`. The build verifies the pinned checksum and Authenticode signature before embedding it.
-Cache the signed PawnIO modules archive at `artifacts/tools/PawnIO.Modules-0.2.11.zip` for offline x64 builds. The build checks the archive and Intel module against the pinned SHA-256 values.
-
-## Publish a release
-
-Commit and push the verified source to `origin/main` after each completed change. Build locally, tag the source commit with its version, and attach only the versioned `*-Setup.exe` files to that tag's GitHub Release. Keep the executable payloads and build output outside Git. GitHub Actions is not used for builds or releases.
 
 ## Hardware validation
 
