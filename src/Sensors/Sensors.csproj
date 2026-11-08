@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>PCimpleMonitor.Sensors</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Monitoring/Monitoring.csproj" />
+    <PackageReference Include="System.Management" Version="10.0.14" />
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="10.0.14" />
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.6" Condition="'$(RuntimeIdentifier)' == '' Or '$(RuntimeIdentifier)' == 'win-x64'" />
+  </ItemGroup>
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == '' Or '$(RuntimeIdentifier)' == 'win-x64'">
+    <DefineConstants>$(DefineConstants);PAWNIO</DefineConstants>
+  </PropertyGroup>
+</Project>

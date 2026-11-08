@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+artifacts/
+.vs/
+*.user
+*.exe
+*.msi
+*.msix
+*.msixbundle

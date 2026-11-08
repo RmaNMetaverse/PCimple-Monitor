@@ -1,0 +1,25 @@
+PCimple Monitor third-party components
+
+Microsoft .NET runtime and Windows Desktop runtime
+License: MIT. Included runtime files also carry their upstream notices.
+https://github.com/dotnet/runtime/blob/main/LICENSE.TXT
+https://github.com/dotnet/wpf/blob/main/LICENSE.TXT
+
+LibreHardwareMonitorLib 0.9.6 (x64 sensor service)
+License: Mozilla Public License 2.0. PCimple Monitor uses the unmodified NuGet package.
+Corresponding source and upstream notices, including dependency and embedded module credits:
+https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/tree/v0.9.6
+https://github.com/LibreHardwareMonitor/LibreHardwareMonitor/tree/v0.9.6/Licenses
+
+PawnIO 2.2.0 (separately installed on compatible x64 PCs)
+The x64 installer bundles the publisher's unmodified, Authenticode-signed setup.
+PawnIO is copyright namazso and licensed under GPL-2.0-or-later with a special exception.
+Corresponding driver source and license for the bundled release:
+https://github.com/namazso/PawnIO/tree/2.2.0
+https://pawnio.eu/
+https://github.com/namazso/PawnIO.Setup/releases/tag/2.2.0
+
+NVIDIA NVAPI
+PCimple Monitor calls NVAPI through the GPU driver already installed on the machine.
+SDK interface information is published under the MIT License.
+https://github.com/NVIDIA/nvapi/blob/main/License.txt

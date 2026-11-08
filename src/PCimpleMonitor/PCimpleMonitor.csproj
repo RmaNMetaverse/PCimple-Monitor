@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- WPF owns the process and declares DPI awareness in its Win32 manifest. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <ApplicationIcon>Assets/PCimpleMonitor.ico</ApplicationIcon>
+    <Product>PCimple Monitor</Product>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Monitoring/Monitoring.csproj" />
+    <Resource Include="Assets/PCimpleMonitor.ico" />
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,71 @@
+<UserControl x:Class="PCimple.SensorTable"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <UserControl.Resources>
+    <Style x:Key="Number" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+      <Setter Property="Typography.NumeralAlignment" Value="Tabular"/>
+      <Style.Triggers>
+        <Trigger Property="Text" Value="Unavailable">
+          <Setter Property="FontSize" Value="11"/>
+          <Setter Property="FontWeight" Value="Normal"/>
+          <Setter Property="Foreground" Value="{DynamicResource Secondary}"/>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+    <DataTemplate x:Key="SensorRow">
+      <Border Style="{StaticResource Card}" ToolTip="{Binding Detail}"
+              AutomationProperties.Name="{Binding AccessibleName}" AutomationProperties.HelpText="{Binding Detail}"
+              Focusable="True">
+        <Grid>
+          <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="75"/><ColumnDefinition Width="75"/></Grid.ColumnDefinitions>
+          <StackPanel Margin="0,0,5,0">
+            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding Status}" Visibility="{Binding HasStatus, Converter={StaticResource VisibleWhen}}"
+                       Foreground="{DynamicResource Secondary}" TextTrimming="CharacterEllipsis" FontSize="11" Margin="0,3,0,0"/>
+          </StackPanel>
+          <TextBlock Grid.Column="1" Text="{Binding Average}" Style="{StaticResource Number}"/>
+          <TextBlock Grid.Column="2" Text="{Binding Peak}" Style="{StaticResource Number}"/>
+        </Grid>
+      </Border>
+    </DataTemplate>
+    <DataTemplate x:Key="BatteryRow">
+      <Border Style="{StaticResource Card}" ToolTip="{Binding Detail}"
+              AutomationProperties.Name="{Binding AccessibleName}" AutomationProperties.HelpText="{Binding Detail}"
+              Focusable="True">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Right" Text="{Binding Average}" Style="{StaticResource Number}" Margin="8,0,0,0"/>
+          <StackPanel>
+            <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+            <TextBlock Text="{Binding Status}" Foreground="{DynamicResource Secondary}" FontSize="11" Margin="0,3,0,0"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+    </DataTemplate>
+  </UserControl.Resources>
+  <StackPanel>
+    <Grid Margin="1,3,15,0">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="75"/><ColumnDefinition Width="75"/></Grid.ColumnDefinitions>
+      <TextBlock Text="THIS SESSION" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Secondary}"/>
+      <TextBlock Grid.Column="1" Text="Average" FontSize="11" HorizontalAlignment="Right" Foreground="{DynamicResource Secondary}"/>
+      <TextBlock Grid.Column="2" Text="Peak" FontSize="11" HorizontalAlignment="Right" Foreground="{DynamicResource Secondary}"/>
+    </Grid>
+    <TextBlock Text="CPU" Style="{StaticResource Section}"/>
+    <ItemsControl ItemsSource="{Binding Cpu}" ItemTemplate="{StaticResource SensorRow}"/>
+    <StackPanel Visibility="{Binding HasGpu, Converter={StaticResource VisibleWhen}}">
+      <TextBlock Text="Graphics" Style="{StaticResource Section}"/>
+      <ItemsControl ItemsSource="{Binding Gpu}" ItemTemplate="{StaticResource SensorRow}"/>
+    </StackPanel>
+    <StackPanel Visibility="{Binding HasDrives, Converter={StaticResource VisibleWhen}}">
+      <TextBlock Text="Drives" Style="{StaticResource Section}"/>
+      <ItemsControl ItemsSource="{Binding Drives}" ItemTemplate="{StaticResource SensorRow}"/>
+    </StackPanel>
+    <StackPanel Visibility="{Binding HasBatteries, Converter={StaticResource VisibleWhen}}">
+      <TextBlock Text="Battery health" Style="{StaticResource Section}"/>
+      <ItemsControl ItemsSource="{Binding Batteries}" ItemTemplate="{StaticResource BatteryRow}"/>
+    </StackPanel>
+  </StackPanel>
+</UserControl>
