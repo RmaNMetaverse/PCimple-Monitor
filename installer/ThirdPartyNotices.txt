@@ -19,6 +19,16 @@ https://github.com/namazso/PawnIO/tree/2.2.0
 https://pawnio.eu/
 https://github.com/namazso/PawnIO.Setup/releases/tag/2.2.0
 
+IntelMCHBAR module (x64 sensor service)
+Unmodified signed module from PawnIO.Modules 0.2.11, licensed under LGPL-2.1-or-later.
+Corresponding module source and license:
+https://github.com/namazso/PawnIO.Modules/tree/0.2.11
+
+Intel Graphics Control Library
+PCimple Monitor calls the telemetry API through the Intel graphics driver already installed on the machine.
+SDK interface information is published under the MIT License.
+https://github.com/intel/drivers.gpu.control-library
+
 NVIDIA NVAPI
 PCimple Monitor calls NVAPI through the GPU driver already installed on the machine.
 SDK interface information is published under the MIT License.

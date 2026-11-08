@@ -76,6 +76,40 @@ function Get-VerifiedPawnIOSetup {
     return $Path
 }
 
+function Get-VerifiedIntelMchbar {
+    $release = Get-Content -LiteralPath (Join-Path $root 'installer\IntelMchbar.json') -Raw | ConvertFrom-Json
+    $tools = New-Item -ItemType Directory -Path (Join-Path $artifact 'tools') -Force
+    $moduleDir = Join-Path $tools.FullName "PawnIO.Modules-$($release.version)"
+    $module = Join-Path $moduleDir 'IntelMCHBAR.bin'
+    if (!(Test-Path -LiteralPath $module -PathType Leaf)) {
+        $archive = Join-Path $tools.FullName "PawnIO.Modules-$($release.version).zip"
+        if (!(Test-Path -LiteralPath $archive -PathType Leaf)) {
+            if ($Offline) { throw "The signed Intel MCHBAR module is missing from the build cache." }
+            Invoke-WebRequest -UseBasicParsing -Uri $release.url -TimeoutSec 45 -OutFile $archive
+        }
+        if ((Get-FileHash -LiteralPath $archive).Hash -ne $release.archiveSha256) {
+            throw 'The PawnIO module archive does not match its pinned SHA-256.'
+        }
+        $zip = [IO.Compression.ZipFile]::OpenRead($archive)
+        try {
+            $entry = $zip.GetEntry('IntelMCHBAR.bin')
+            if (!$entry) { throw 'The signed Intel MCHBAR module is absent from the archive.' }
+            New-Item -ItemType Directory -Path $moduleDir -Force | Out-Null
+            [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $module, $true)
+        } finally {
+            $zip.Dispose()
+        }
+    }
+    if ((Get-FileHash -LiteralPath $module).Hash -ne $release.moduleSha256) {
+        throw 'The Intel MCHBAR module does not match its pinned SHA-256.'
+    }
+    return $module
+}
+
+if ($Architecture -contains 'x64') {
+    $intelMchbar = Get-VerifiedIntelMchbar
+}
+
 if (!$PublishOnly -and $Architecture -contains 'x64') {
     $pawnIO = Get-Content -LiteralPath (Join-Path $root 'installer\PawnIO.json') -Raw | ConvertFrom-Json
     $verifiedPawnIO = Get-VerifiedPawnIOSetup -Path $PawnIOSetupPath -Release $pawnIO
@@ -96,14 +130,19 @@ foreach ($arch in $Architecture) {
         $restore = @('restore', $project, '-r', $rid, '-p:SelfContained=true')
         if ($Offline) { $restore += '--source', $cache, '-p:NuGetAudit=false' }
         Invoke-Checked dotnet $restore
-        Invoke-Checked dotnet @('publish', $project, '-c', 'Release', '-r', $rid, '--self-contained',
+        $publishArgs = @('publish', $project, '-c', 'Release', '-r', $rid, '--self-contained',
             '--no-restore', '-o', $target, '-p:DebugType=None', '-p:DebugSymbols=false')
+        if ($arch -eq 'x64' -and $component.Key -eq 'sensors') {
+            $publishArgs += "-p:IntelMchbarModule=$intelMchbar"
+        }
+        Invoke-Checked dotnet $publishArgs
     }
 
     $notices = New-Item -ItemType Directory -Path (Join-Path $publish 'notices') -Force
     Copy-Item -LiteralPath (Join-Path $root 'installer\ThirdPartyNotices.txt') -Destination $notices
     if ($arch -eq 'x64') {
         Copy-Item -LiteralPath (Join-Path $root 'installer\PawnIO-COPYING.txt') -Destination $notices
+        Copy-Item -LiteralPath (Join-Path $root 'installer\PawnIO-Modules-COPYING.txt') -Destination $notices
         foreach ($package in @('librehardwaremonitorlib\0.9.6', 'diskinfotoolkit\1.1.2')) {
             $packageDir = Join-Path $cache $package
             if (-not (Test-Path -LiteralPath $packageDir)) { continue }

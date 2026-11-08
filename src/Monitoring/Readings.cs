@@ -8,7 +8,7 @@ public sealed record Reading(
     double? Celsius = null, string? DriveType = null, DriveHealth DriveHealth = DriveHealth.Unavailable,
     double? BatteryHealth = null, string? Detail = null);
 
-public sealed record Snapshot(int Version, Reading[]? Cpu, Reading[]? Drives)
+public sealed record Snapshot(int Version, Reading[]? Cpu, Reading[]? Drives, IntelGtSample? IntelGraphics = null)
 {
     public const int ProtocolVersion = 1;
     public const string PipeName = "PCimpleMonitor.Sensors.v1";

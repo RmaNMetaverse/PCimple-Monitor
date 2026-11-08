@@ -8,6 +8,8 @@ Use the installer for your Windows architecture from [GitHub Releases](https://g
 
 Sensor coverage depends on firmware, drivers, and storage controllers. On x86 and ARM64, CPU temperature is currently unavailable unless a verified package source is added for the platform. NVAPI supports native ARM64 for NVIDIA GPUs. An unavailable sensor is shown as such. Some USB and RAID controllers expose limited physical-drive health data.
 
+On x64, Intel graphics can use Intel driver telemetry. When the driver omits it, the sensor service can read the processor's separate graphics temperature on supported Raptor Lake mobile systems with PawnIO.
+
 ## Build and test
 
 Use the .NET 10 SDK, PowerShell, and Inno Setup 6.7 or 7.1. Run these commands from the repository root.
@@ -20,6 +22,7 @@ dotnet run --project tests/Monitoring.Tests
 Use `-PublishOnly` to create the self-contained application and service folders without installers. Use `-Offline` after all NuGet and runtime packages have been cached. Installers and their SHA-256 checksums are written to `artifacts/installers`. For a public release, pass `-SignToolCommand` with a publisher Authenticode signing command and the Inno Setup `$f` file placeholder.
 
 For an offline x64 build, cache the publisher's PawnIO setup at `artifacts/tools/PawnIO_setup-2.2.0.exe` or pass its location with `-PawnIOSetupPath`. The build verifies the pinned checksum and Authenticode signature before embedding it.
+Cache the signed PawnIO modules archive at `artifacts/tools/PawnIO.Modules-0.2.11.zip` for offline x64 builds. The build checks the archive and Intel module against the pinned SHA-256 values.
 
 ## Publish a release
 

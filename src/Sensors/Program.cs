@@ -26,8 +26,10 @@ internal static class Program
     private static async Task RunAsync(CancellationToken stop, TaskCompletionSource? started = null)
     {
         using var cpus = new Cpus();
-        var cpu = new Poller(cpus.Read, TimeSpan.FromSeconds(2));
-        var disks = new Poller(Drives.Read, TimeSpan.FromSeconds(15));
+        using var intelGraphics = new IntelGtReader();
+        var cpu = new Poller<Reading[]>(cpus.Read, TimeSpan.FromSeconds(2));
+        var disks = new Poller<Reading[]>(Drives.Read, TimeSpan.FromSeconds(15));
+        var gt = new Poller<IntelGtSample>(intelGraphics.Read, TimeSpan.FromSeconds(2));
         using var pipe = OpenPipe();
         started?.SetResult();
 
@@ -38,7 +40,7 @@ internal static class Program
                 await pipe.WaitForConnectionAsync(stop);
                 try
                 {
-                    var snapshot = new Snapshot(Snapshot.ProtocolVersion, cpu.Get(), disks.Get());
+                    var snapshot = new Snapshot(Snapshot.ProtocolVersion, cpu.Get(), disks.Get(), gt.Get());
                     byte[] payload = JsonSerializer.SerializeToUtf8Bytes(snapshot);
                     if (payload.Length <= Snapshot.MaxBytes)
                     {
@@ -66,7 +68,7 @@ internal static class Program
         catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
         finally
         {
-            await Task.WhenAll(cpu.Completion, disks.Completion);
+            await Task.WhenAll(cpu.Completion, disks.Completion, gt.Completion);
         }
     }
 
@@ -97,13 +99,13 @@ internal static class Program
         finally { LocalFree(descriptor); }
     }
 
-    private sealed class Poller(Func<Reading[]> read, TimeSpan interval)
+    private sealed class Poller<T>(Func<T?> read, TimeSpan interval) where T : class
     {
         private DateTimeOffset _next;
-        private Reading[]? _current;
+        private T? _current;
         public Task Completion { get; private set; } = Task.CompletedTask;
 
-        public Reading[]? Get()
+        public T? Get()
         {
             var now = DateTimeOffset.UtcNow;
             if (now >= _next && Completion.IsCompleted)

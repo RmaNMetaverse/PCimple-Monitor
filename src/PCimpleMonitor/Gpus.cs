@@ -7,8 +7,10 @@ internal sealed unsafe class Gpus : IDisposable
 {
     private Nvidia? _nvidia;
     private DateTimeOffset _nextNvidiaProbe;
+    private IntelGraphics? _intel;
+    private DateTimeOffset _nextIntelProbe;
 
-    public Reading[] Read()
+    public Reading[] Read(IntelGtSample? intelGt)
     {
         var adapters = Enumerate();
         var now = DateTimeOffset.UtcNow;
@@ -19,8 +21,20 @@ internal sealed unsafe class Gpus : IDisposable
         }
         var nvidiaAdapters = _nvidia?.Enumerate() ?? [];
         bool onlyOneNvidia = nvidiaAdapters.Length == 1 && adapters.Count(a => a.Vendor == 0x10DE) == 1;
+        if (_intel is null && now >= _nextIntelProbe &&
+            adapters.Any(adapter => adapter.Vendor == IntelGt.VendorId && !adapter.WindowsTemperature.HasValue))
+        {
+            _intel = IntelGraphics.TryLoad();
+            _nextIntelProbe = now.AddSeconds(30);
+        }
+        var intelTemperatures = _intel?.Read();
+        var gtAdapters = adapters.Where(adapter => adapter.SinglePhysical && adapter.Vendor == IntelGt.VendorId &&
+            IntelGt.IsRaptorLakeMobile(adapter.Device) &&
+            (adapter.Address is null or { Bus: 0, Device: 2, Function: 0 })).ToArray();
+        var gtAdapter = gtAdapters.Length == 1 ? gtAdapters[0] : null;
         return [.. adapters.Select(adapter =>
         {
+            DateTimeOffset sampledAt = DateTimeOffset.UtcNow;
             double? temperature = adapter.WindowsTemperature;
             string detail = temperature.HasValue ? "Main GPU temperature via Windows graphics driver." :
                 "The graphics driver did not report a main GPU temperature.";
@@ -36,7 +50,26 @@ internal sealed unsafe class Gpus : IDisposable
                     detail = "Main GPU temperature via NVIDIA NVAPI.";
                 }
             }
-            return new Reading(adapter.Id, adapter.Name, HardwareKind.Gpu, DateTimeOffset.UtcNow, temperature, Detail: detail);
+            if (adapter.Vendor == IntelGt.VendorId && !temperature.HasValue)
+            {
+                if (adapter.SinglePhysical && intelTemperatures?.TryGetValue(adapter.Luid, out double vendorTemperature) == true)
+                {
+                    temperature = vendorTemperature;
+                    detail = "Main GPU temperature via Intel Graphics Control Library.";
+                }
+                else if (ReferenceEquals(adapter, gtAdapter) && intelGt is { Celsius: > 0 and <= 125 } gt &&
+                    gt.SampledAt <= sampledAt && sampledAt - gt.SampledAt <= TimeSpan.FromSeconds(8))
+                {
+                    temperature = gt.Celsius;
+                    sampledAt = gt.SampledAt;
+                    detail = "Intel integrated graphics (GT) temperature via the processor's thermal sensor.";
+                }
+                else
+                {
+                    detail = "A separate Intel GPU temperature was unavailable from the graphics driver and supported hardware sensors.";
+                }
+            }
+            return new Reading(adapter.Id, adapter.Name, HardwareKind.Gpu, sampledAt, temperature, Detail: detail);
         })];
     }
 
@@ -65,9 +98,10 @@ internal sealed unsafe class Gpus : IDisposable
                     string name = new string(desc.Description).Trim();
                     var open = new OpenAdapter { Luid = desc.Luid };
                     string id = $"{desc.Luid.High:X8}:{desc.Luid.Low:X8}";
+                    ulong luid = ((ulong)(uint)desc.Luid.High << 32) | desc.Luid.Low;
                     if (D3DKMTOpenAdapterFromLuid(ref open) != 0)
                     {
-                        adapters.Add(new Adapter(id, name, desc.Vendor, null, null));
+                        adapters.Add(new Adapter(id, name, desc.Vendor, desc.Device, luid, true, null, null));
                         continue;
                     }
 
@@ -85,7 +119,8 @@ internal sealed unsafe class Gpus : IDisposable
                             bool valid = Query(open.Handle, 62, &performance, sizeof(AdapterPerformance)) &&
                                 performance.Temperature is > 0 and <= 2000;
                             adapters.Add(new Adapter(count == 1 ? id : $"{id}:{index}",
-                                count == 1 ? name : $"{name} ({index + 1})", desc.Vendor, hasAddress ? address : null,
+                                count == 1 ? name : $"{name} ({index + 1})", desc.Vendor, desc.Device, luid, count == 1,
+                                hasAddress ? address : null,
                                 valid ? performance.Temperature / 10.0 : null));
                         }
                     }
@@ -106,9 +141,14 @@ internal sealed unsafe class Gpus : IDisposable
         return D3DKMTQueryAdapterInfo(ref query) == 0;
     }
 
-    public void Dispose() => _nvidia?.Dispose();
+    public void Dispose()
+    {
+        _nvidia?.Dispose();
+        _intel?.Dispose();
+    }
 
-    private sealed record Adapter(string Id, string Name, uint Vendor, AdapterAddress? Address, double? WindowsTemperature);
+    private sealed record Adapter(string Id, string Name, uint Vendor, uint Device, ulong Luid, bool SinglePhysical,
+        AdapterAddress? Address, double? WindowsTemperature);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct Luid { public uint Low; public int High; }

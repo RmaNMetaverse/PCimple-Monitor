@@ -48,7 +48,14 @@ Equal(80.0, BatteryCapacity.Percent(50000, 40000), "Battery capacity ratio");
 Equal(100.0, BatteryCapacity.Percent(50000, 51000), "Battery health cap");
 Equal(null, BatteryCapacity.Percent(0, 42000), "Missing design capacity");
 Equal(null, BatteryCapacity.Percent(50000, uint.MaxValue), "Unknown full capacity");
-Console.WriteLine("Passed 17 monitoring assertions.");
+Equal(43.0, IntelGt.DecodeTemperature(0x88390000, 0x00640000), "Graphics sensor uses its own thermal offset");
+Equal(100.0, IntelGt.DecodeTemperature(0x88000000, 0x00640000), "Zero distance is a valid reading at TjMax");
+Equal(null, IntelGt.DecodeTemperature(0x08390000, 0x00640000), "Graphics sensor must set its valid bit");
+Equal(null, IntelGt.DecodeTemperature(0x88390000, 0), "Missing junction limit must not produce a temperature");
+Equal(null, IntelGt.DecodeTemperature(uint.MaxValue, 0x00640000), "Unmapped register must not produce a temperature");
+Equal(true, IntelGt.IsRaptorLakeMobile(0xA7A8), "Laptop UHD adapter identity");
+Equal(false, IntelGt.IsRaptorLakeMobile(0x56A0), "Discrete Arc is not a CPU graphics sensor");
+Console.WriteLine("Passed 24 monitoring assertions.");
 
 static void Equal<T>(T expected, T actual, string test)
 {

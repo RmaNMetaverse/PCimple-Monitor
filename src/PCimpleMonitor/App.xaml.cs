@@ -26,6 +26,7 @@ public partial class App : Application
     private bool _ownsInstance;
     private bool _exiting;
     private DateTimeOffset _lastServiceContact;
+    private IntelGtSample? _intelGraphics;
 
     protected override void OnStartup(StartupEventArgs args)
     {
@@ -74,7 +75,8 @@ public partial class App : Application
         _ = Task.Run(async () =>
         {
             using var gpus = new Gpus();
-            await PollLocal(HardwareKind.Gpu, gpus.Read, TimeSpan.FromSeconds(2), _stop.Token);
+            await PollLocal(HardwareKind.Gpu, () => gpus.Read(Volatile.Read(ref _intelGraphics)),
+                TimeSpan.FromSeconds(2), _stop.Token);
         });
         _ = Task.Run(() => PollLocal(HardwareKind.Battery, Batteries.Read, TimeSpan.FromSeconds(30), _stop.Token));
     }
@@ -140,6 +142,7 @@ public partial class App : Application
             try
             {
                 Snapshot result = await SensorClient.ReadAsync(stop);
+                Volatile.Write(ref _intelGraphics, result.IntelGraphics);
                 await Dispatcher.InvokeAsync(() =>
                 {
                     var now = DateTimeOffset.UtcNow;
